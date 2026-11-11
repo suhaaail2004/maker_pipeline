@@ -1,0 +1,49 @@
+# ──────────────────────────────────────────
+# .dockerignore – files excluded from the
+# Docker build context
+# ──────────────────────────────────────────
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# CI / CD
+Jenkinsfile
+.jenkins/
+
+# Kubernetes / Helm manifests (not needed inside the image)
+manifests/
+
+# Node / npm (if added later)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE configs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+
+# Logs & temp files
+*.log
+*.tmp
+tmp/
+
+# Secrets / environment files
+.env
+.env.*
+*.pem
+*.key
+
