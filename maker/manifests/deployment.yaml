@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: maker
-          image: 8089278330/maker:17
+          image: 8089278330/maker:18
           imagePullPolicy: Always
           ports:
             - containerPort: 80
