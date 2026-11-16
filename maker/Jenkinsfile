@@ -50,24 +50,24 @@ pipeline {
 }
 
         stage('Update Manifest Repo') {
-    steps {
-        dir('manifest-workspace') {
-            withCredentials([usernamePassword(credentialsId: 'github-cred', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')]) {
-                sh '''
-                    # Configure remote URL with embedded credentials for pushing
-                    git remote set-url origin https://${GH_USER}:${GH_TOKEN}@github.com/suhaaail2004/maker_pipeline.git
-                    
-                    # Perform sed update, commit, and push
-                    sed -i '/name: maker/{n;s|image:.*|image: 8089278330/maker:'${env.BUILD_NUMBER}'|}' maker/manifests/deployment.yaml
-                    git config user.name "suhaaail2004"
-                    git config user.email "suhailshihab444@gmail.com"
-                    git commit -am "chore(manifest): update maker image tag to ${env.BUILD_NUMBER} [skip ci]"
-                    git push origin main
-                '''
+            steps {
+                dir('manifest-workspace') {
+                    withCredentials([usernamePassword(credentialsId: 'github-cred', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')]) {
+                        sh """
+                            # Configure remote URL with properly escaped variables for pushing
+                            git remote set-url origin https://\${GH_USER}:\${GH_TOKEN}@github.com/suhaaail2004/maker_pipeline.git
+                            
+                            # Perform sed update, commit, and push
+                            sed -i '/name: maker/{n;s|image:.*|image: 8089278330/maker:${env.BUILD_NUMBER}|}' maker/manifests/deployment.yaml
+                            git config user.name "suhaaail2004"
+                            git config user.email "suhailshihab444@gmail.com"
+                            git commit -am "chore(manifest): update maker image tag to ${env.BUILD_NUMBER} [skip ci]"
+                            git push origin main
+                        """
+                    }
+                }
             }
         }
-    }
-}
     }
     post {
         success {
