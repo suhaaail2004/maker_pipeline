@@ -2,54 +2,73 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME   = 'maker-website'
-        REGISTRY     = 'your-dockerhub-username'          // ← change me
-        IMAGE_TAG    = "${env.BUILD_NUMBER}"
-        DOCKER_CREDS = 'docker-credentials-id'            // ← Jenkins credential ID
+        DOCKER_CREDENTIALS_ID = 'docker-cred'
+        DOCKER_IMAGE          = '8089278330/maker' // Format: username/maker
+        SONAR_SERVER_NAME     = 'sonarqube_env' 
+        SONAR_SCANNER_TOOL    = 'sonar-scanner'     
+        GIT_CREDENTIALS_ID    = 'github-cred'
+        MANIFEST_REPO         = 'https://github.com/suhaaail2004/maker_pipeline.git'
+        MANIFEST_BRANCH       = 'main'
     }
 
     stages {
-
-        stage('Checkout') {
+        stage('Checkout Source Code') {
             steps {
-                echo 'Passed...'
+                echo "passed"
             }
         }
 
-        stage('Build and Test') {
-            steps {
-                echo 'Building project...'
-                // Add your build command here, e.g: sh 'npm install'
-                echo 'Running tests...'
-                // Add your test command here, e.g: sh 'npm test'
-            }
-        }
-
-        stage('Docker Build and Push') {
+        stage('SonarQube Analysis') {
             steps {
                 script {
-                    docker.withRegistry('', "${DOCKER_CREDS}") {
-                        def img = docker.build("${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}")
-                        img.push()
-                        img.push('latest')
+                    def scannerHome = tool "${SONAR_SCANNER_TOOL}"
+                    withSonarQubeEnv("${SONAR_SERVER_NAME}") {
+                        sh "${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=maker-key \
+                            -Dsonar.projectName='maker-project' \
+                            -Dsonar.sources=."
                     }
                 }
             }
         }
 
-        stage('Update Deployment File') {
+        stage('Build & Push Docker Image') {
             steps {
-                sh """
-                    sed -i 's|IMAGE_PLACEHOLDER|${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}|g' manifests/deployment.yaml
-                    cat manifests/deployment.yaml
-                """
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
+                        // Builds and pushes your-dockerhub-username/maker:<BUILD_NUMBER> and :latest
+                        def appImage = docker.image("${DOCKER_IMAGE}:${env.BUILD_NUMBER}")
+                        appImage.build()
+                        appImage.push()
+                        appImage.push('latest')
+                    }
+                }
             }
         }
 
+        stage('Update Manifest Repo') {
+            steps {
+                dir('manifest-workspace') {
+                    git branch: "${MANIFEST_BRANCH}", credentialsId: "${GIT_CREDENTIALS_ID}", url: "${MANIFEST_REPO}"
+
+                    sh """
+                        # Updates the 'maker' container image tag to your-dockerhub-username/maker:<BUILD_NUMBER>
+                        sed -i '/name: maker/{n;s|image:.*|image: ${DOCKER_IMAGE}:${env.BUILD_NUMBER}|}' maker/manifests/deployment.yaml
+                        
+                        git -c user.name='suhaaail2004' -c user.email='suhailshihab444@gmail.com' commit -am "chore(manifest): update maker image tag to ${env.BUILD_NUMBER} [skip ci]"
+                        git push origin ${MANIFEST_BRANCH}
+                    """
+                }
+            }
+        }
     }
 
     post {
-        success { echo "✅ Pipeline succeeded — image: ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" }
-        failure { echo "❌ Pipeline failed." }
+        success {
+            echo 'Pipeline executed successfully! Manifest repo updated with new image tag.'
+        }
+        failure {
+            echo 'Pipeline failed. Please review the stage logs above.'
+        }
     }
 }
