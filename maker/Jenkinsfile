@@ -68,7 +68,7 @@ pipeline {
         }
     }
 }
-
+    }
     post {
         success {
             echo 'Pipeline executed successfully! Manifest repo updated with new image tag.'
