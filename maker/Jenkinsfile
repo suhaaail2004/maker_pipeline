@@ -32,21 +32,19 @@ pipeline {
             }
         }
 
-        stage('Build & Push Docker Image') {
+        stage('Build & Post Docker Image') {
     steps {
         script {
-            // Log in securely using credentials ID
-            withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                sh """
-                    echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+            withCredentials([usernamePassword(credentialsId: '${DOCKER_CREDENTIALS_ID}', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     
-                    # Build the image with tag and latest
-                    docker build -t ${DOCKER_IMAGE}:${env.BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest .
+                    # Build using the 'maker' subfolder as context and pointing to the Dockerfile inside it
+                    docker build -t ${DOCKER_IMAGE}:${env.BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest -f maker/Dockerfile maker
                     
-                    # Push both tags
                     docker push ${DOCKER_IMAGE}:${env.BUILD_NUMBER}
                     docker push ${DOCKER_IMAGE}:latest
-                """
+                '''
             }
         }
     }
