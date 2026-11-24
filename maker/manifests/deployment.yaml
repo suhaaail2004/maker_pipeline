@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: maker-deployment
-  namespace: production
+  name: maker-pipeline
+  namespace: argocd
   labels:
     app: maker
     tier: frontend
